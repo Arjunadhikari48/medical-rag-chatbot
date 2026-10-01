@@ -6,6 +6,10 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
 
     if not text.strip():
         return []
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    if overlap < 0:
+        raise ValueError("chunk_overlap cannot be negative")
     if overlap >= chunk_size:
         raise ValueError("chunk_overlap must be smaller than chunk_size")
 
@@ -14,21 +18,22 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
     current = ""
 
     for paragraph in paragraphs:
-        candidate = f"{current}\n{paragraph}".strip()
-        if len(candidate) <= chunk_size:
-            current = candidate
-            continue
+        remaining = paragraph
+        while remaining:
+            separator = "\n" if current else ""
+            available = chunk_size - len(current) - len(separator)
 
-        if current:
-            chunks.append(current)
-            current = current[-overlap:] + "\n" + paragraph
-        else:
-            start = 0
-            while start < len(paragraph):
-                end = start + chunk_size
-                chunks.append(paragraph[start:end])
-                start = max(end - overlap, start + 1)
-            current = ""
+            if len(remaining) <= available:
+                current = f"{current}{separator}{remaining}"
+                break
+
+            if available > 0:
+                current = f"{current}{separator}{remaining[:available]}"
+                remaining = remaining[available:]
+
+            if current:
+                chunks.append(current)
+                current = current[-overlap:] if overlap else ""
 
     if current.strip():
         chunks.append(current.strip())
